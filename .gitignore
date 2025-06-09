@@ -8,3 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Snakemake files
+.snakemake/
+
+# Project-specific files
+tmp/
+fqs/
+gzipped-fastqs/
+jfs/
+tsvs/
+filtered-counts/
+*.tar.gz

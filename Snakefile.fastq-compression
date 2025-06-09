@@ -1,0 +1,37 @@
+import os
+from pathlib import Path
+
+# Configuration
+FQS_DIR = "fqs"
+OUT_DIR = "gzipped-fastqs"
+RAMFS_DIR = "/dev/shm/tmp"
+
+# Get list of fastq files (without extension)
+fastqs = [f.stem for f in Path(FQS_DIR).glob("*.fastq")]
+
+rule all:
+    input:
+        expand(f"{OUT_DIR}/{{sample}}.fastq.gz", sample=fastqs)
+
+rule gzip_to_ramfs:
+    input:
+        fq = f"{FQS_DIR}/{{sample}}.fastq"
+    output:
+        gz = temp(f"{RAMFS_DIR}/{{sample}}.fastq.gz")
+    shell:
+        """
+        echo "Compressing {input.fq} into RAM: {output.gz}"
+        gzip -c {input.fq} > {output.gz}
+        rm {input.fq}
+        """
+
+rule move_to_output:
+    input:
+        gz = f"{RAMFS_DIR}/{{sample}}.fastq.gz"
+    output:
+        gz_out = f"{OUT_DIR}/{{sample}}.fastq.gz"
+    shell:
+        """
+        echo "Moving {input.gz} to {output.gz_out}"
+        mv {input.gz} {output.gz_out}
+        """
