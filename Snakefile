@@ -7,7 +7,7 @@ coverages = df.set_index('Run')['Coverage'].to_dict()
 
 rule all:
     input:
-        expand(["tsvs/{acc}.tsv", "filtered-counts/{acc}.tsv"], acc=accessions)
+        expand("normalized-filtered-counts/{acc}.csv", acc=accessions)
 
 rule download:
     output:
@@ -32,14 +32,6 @@ rule jellyfish_count:
     shell:
         "jellyfish count -m 23 -s 16G -t {threads} -C -L 4 -o {output} {input}"
 
-rule dump_tsv:
-    input:
-        "jfs/{acc}.jf"
-    output:
-        "tsvs/{acc}.tsv"
-    shell:
-        "jellyfish dump -c {input} > {output}"
-
 rule dump_filtered_counts:
     input:
         "jfs/{acc}.jf"
@@ -49,3 +41,13 @@ rule dump_filtered_counts:
         min_count=lambda wildcards: int(coverages[wildcards.acc])
     shell:
         "jellyfish dump -c -t -L {params.min_count} {input} > {output}"
+
+rule normalize_counts:
+    input:
+        "filtered-counts/{acc}.tsv"
+    output:
+        "normalized-filtered-counts/{acc}.csv"
+    params:
+        coverage=lambda wildcards: coverages[wildcards.acc]
+    shell:
+        "python scripts/normalize_kmer_count_by_coverage.py {input} -o {output} -c {params.coverage}"

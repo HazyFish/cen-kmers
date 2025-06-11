@@ -17,6 +17,6 @@ tmp/
 fqs/
 gzipped-fastqs/
 jfs/
-tsvs/
 filtered-counts/
+normalized-filtered-counts/
 *.tar.gz
