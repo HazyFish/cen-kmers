@@ -7,7 +7,7 @@ coverages = df.set_index('Run')['Coverage'].to_dict()
 
 rule all:
     input:
-        expand("normalized-filtered-counts/{acc}.csv", acc=accessions)
+        expand("normalized-filtered-counts/{acc}.f32.feather", acc=accessions)
 
 rule download:
     output:
@@ -46,7 +46,7 @@ rule normalize_counts:
     input:
         "filtered-counts/{acc}.tsv"
     output:
-        "normalized-filtered-counts/{acc}.csv"
+        "normalized-filtered-counts/{acc}.f32.feather"
     params:
         coverage=lambda wildcards: coverages[wildcards.acc]
     shell:
