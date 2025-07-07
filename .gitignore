@@ -19,4 +19,4 @@ gzipped-fastqs/
 jfs/
 filtered-counts/
 normalized-filtered-counts/
-*.tar.gz
+data/
