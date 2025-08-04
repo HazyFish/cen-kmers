@@ -15,3 +15,4 @@
 - `snakemake --cores all --resources mem_mb=163840 --keep-going`
 
 - `snakemake --snakefile Snakefile.hamburg --cores all --resources mem_mb=163840 --keep-going --dry-run`
+- `python scripts/join_kmer_counts_per_genotype.py PRJNA723952.SraRunTable.csv data/hamburg/normalized-filtered-counts/ -o data/hamburg/joined-counts --feather-suffix .f32.feather -j 40`
