@@ -1,0 +1,58 @@
+import pandas as pd
+
+df = pd.read_csv('PRJNA723952.SraRunTable.csv', usecols=['Run', 'Bases'])
+df['Coverage'] = df['Bases'] / 133_917_231  # Number of Bases in ColPEK Assembly
+runs = df[(df['Coverage'] >= 1) & (df['Coverage'] <= 4)]['Run'].tolist()
+coverages = df.set_index('Run')['Coverage'].to_dict()
+
+rule all:
+    input:
+        expand("data/hamburg/normalized-filtered-counts/{run}.f32.feather", run=runs)
+
+rule prefetch:
+    output:
+        "data/hamburg/sra/{run}/{run}.sra"
+    shell:'''
+        prefetch {wildcards.run} -O data/hamburg/sra --max-size 16g
+    '''
+
+rule dump_fastq:
+    input:
+        "data/hamburg/sra/{run}/{run}.sra"
+    output:
+        "data/hamburg/fqs/{run}_1.fastq", "data/hamburg/fqs/{run}_2.fastq"
+    threads: 4
+    shell:'''
+        fasterq-dump --threads {threads} --outdir data/hamburg/fqs {input}
+    '''
+
+rule jellyfish_count:
+    input:
+        "data/hamburg/fqs/{run}_1.fastq", "data/hamburg/fqs/{run}_2.fastq"
+    output:
+        "data/hamburg/jfs/{run}.jf"
+    resources:
+        mem_mb=32768
+    threads: 8
+    shell:
+        "jellyfish count -m 23 -s 8G -t {threads} -C -L 4 -o {output} {input}"
+
+rule dump_filtered_counts:
+    input:
+        "data/hamburg/jfs/{run}.jf"
+    output:
+        "data/hamburg/filtered-counts/{run}.tsv"
+    params:
+        min_count=lambda wildcards: int(4 * coverages[wildcards.run])
+    shell:
+        "jellyfish dump -c -t -L {params.min_count} {input} > {output}"
+
+rule normalize_counts:
+    input:
+        "data/hamburg/filtered-counts/{run}.tsv"
+    output:
+        "data/hamburg/normalized-filtered-counts/{run}.f32.feather"
+    params:
+        coverage=lambda wildcards: coverages[wildcards.run]
+    shell:
+        "python scripts/normalize_kmer_count_by_coverage.py {input} -o {output} -c {params.coverage}"

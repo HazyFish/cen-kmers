@@ -13,3 +13,5 @@
 - [Install `uv`](https://docs.astral.sh/uv/getting-started/installation/)
 - Clone this repository
 - `snakemake --cores all --resources mem_mb=163840 --keep-going`
+
+- `snakemake --snakefile Snakefile.hamburg --cores all --resources mem_mb=163840 --keep-going --dry-run`
