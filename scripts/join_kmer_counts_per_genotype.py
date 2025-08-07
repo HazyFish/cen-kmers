@@ -1,12 +1,8 @@
-import sys
 from pathlib import Path
 from typing import Annotated
 
 import pandas as pd
 import typer
-
-# Import join_kmer_counts from sibling script using sys.path
-sys.path.insert(0, str(Path(__file__).parent))
 from join_kmer_counts_feather import join_kmer_counts
 
 
@@ -71,6 +67,10 @@ def main(
         )
 
         output_path = output_dir / f"{compact_genotype_str}.joined.feather"
+
+        if output_path.exists() or output_path.with_suffix(".index.feather").exists():
+            print(f"Output for '{compact_genotype_str}' already exists, skipping.")
+            continue
 
         print(
             f"Joining {len(feather_paths)} files for genotype '{genotype}' into {output_path}"
