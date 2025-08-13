@@ -14,6 +14,7 @@ dependencies = [
     "scipy>=1.16.0",
     "seaborn>=0.13.2",
     "snakemake>=9.5.1",
+    "torch>=2.8.0",
     "typer>=0.16.0",
 ]
 
