@@ -1,0 +1,43 @@
+import pandas as pd
+
+ecotypes = [
+    "an1",
+    "c24",
+    "col",
+    "cvi",
+    "eri",
+    "kyo",
+    "ler",
+    "sha"
+]
+
+rule all:
+    input:
+        expand("data/7-eco/compressed-filtered-counts/{ecotype}.f32.feather", ecotype=ecotypes)
+
+rule jellyfish_count:
+    input:
+        "data/7-eco/fqs/{ecotype}_catted.fq"
+    output:
+        "data/7-eco/jfs/{ecotype}.jf"
+    resources:
+        mem_mb=65536
+    threads: 8
+    shell:
+        "jellyfish count -m 23 -s 16G -t {threads} -C -L 8 -o {output} {input}"
+
+rule dump_filtered_counts:
+    input:
+        "data/7-eco/jfs/{ecotype}.jf"
+    output:
+        "data/7-eco/filtered-counts/{ecotype}.tsv"
+    shell:
+        "jellyfish dump -c -t {input} > {output}"
+
+rule convert_tsv_to_feather:
+    input:
+        "data/7-eco/filtered-counts/{ecotype}.tsv"
+    output:
+        "data/7-eco/compressed-filtered-counts/{ecotype}.f32.feather"
+    shell:
+        "python scripts/convert_tsv.py {input} -o {output}"

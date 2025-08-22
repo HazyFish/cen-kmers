@@ -23,3 +23,5 @@
 - `python scripts/join_parts.py data/hamburg/correlations/ColLer_Col.joined.part.* -o data/hamburg/correlations/ColLer_Col.joined.corr.combined.feather`
 - `python scripts/join_parts.py data/hamburg/correlations/Col_tColaLer.joined.part.* -o data/hamburg/correlations/Col_tColaLer.joined.corr.combined.feather`
 - `python scripts/join_parts.py data/hamburg/correlations/tColaLer_Col.joined.part.* -o data/hamburg/correlations/tColaLer_Col.joined.corr.combined.feather`
+
+- `snakemake --snakefile Snakefile.7eco --cores all --resources mem_mb=131072 --keep-going --dry-run`
