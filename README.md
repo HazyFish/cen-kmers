@@ -25,3 +25,4 @@
 - `python scripts/join_parts.py data/hamburg/correlations/tColaLer_Col.joined.part.* -o data/hamburg/correlations/tColaLer_Col.joined.corr.combined.feather`
 
 - `snakemake --snakefile Snakefile.7eco --cores all --resources mem_mb=131072 --keep-going --dry-run`
+- `python scripts/join_kmer_counts_feather.py data/7-eco/compressed-filtered-counts/*.feather -o data/7-eco/joined-counts/ecotypes-joined-counts.feather -j 4`
