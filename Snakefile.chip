@@ -1,0 +1,52 @@
+import pandas as pd
+
+df = pd.read_csv('GSE88907.SraRunTable.csv', usecols=['Run', 'chip_antibody'])
+runs = df[df["chip_antibody"].isin(["AtCENH3 (Steve Henikoff lab)", "none"])]['Run'].tolist()
+
+rule all:
+    input:
+        expand("data/chip/filtered-counts/{run}.feather", run=runs)
+
+rule prefetch:
+    output:
+        temp("data/chip/sra/{run}/{run}.sra")
+    shell:'''
+        prefetch {wildcards.run} -O data/chip/sra --max-size 16g
+    '''
+
+rule dump_fastq:
+    input:
+        "data/chip/sra/{run}/{run}.sra"
+    output:
+        "data/chip/fqs/{run}_1.fastq", "data/chip/fqs/{run}_2.fastq"
+    threads: 4
+    shell:'''
+        fasterq-dump --threads {threads} --outdir data/chip/fqs {input}
+    '''
+
+rule jellyfish_count:
+    input:
+        "data/chip/fqs/{run}_1.fastq", "data/chip/fqs/{run}_2.fastq"
+    output:
+        "data/chip/jfs/{run}.jf"
+    resources:
+        mem_mb=16384
+    threads: 8
+    shell:
+        "jellyfish count -m 23 -s 8G -t {threads} -C -L 8 -o {output} {input}"
+
+rule dump_counts:
+    input:
+        "data/chip/jfs/{run}.jf"
+    output:
+        temp("data/chip/filtered-counts/{run}.tsv")
+    shell:
+        "jellyfish dump -c -t {input} > {output}"
+
+rule convert_tsv_to_feather:
+    input:
+        "data/chip/filtered-counts/{run}.tsv"
+    output:
+        "data/chip/filtered-counts/{run}.feather"
+    shell:
+        "python scripts/convert_tsv.py {input} -o {output} --dtype int32"

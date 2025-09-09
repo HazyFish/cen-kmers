@@ -1,15 +1,26 @@
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
-import numpy as np
 import pandas as pd
 import typer
 from typer import Argument, Option
 
 
+class DtypeOption(StrEnum):
+    float32 = "float32"
+    float64 = "float64"
+    int32 = "int32"
+    int64 = "int64"
+
+
 def convert_tsv(
     input_tsv_path: Annotated[Path, Argument()],
     output_path: Annotated[Path, Option("-o")],
+    dtype: Annotated[
+        DtypeOption,
+        Option("--dtype", help="Data type for counts, e.g., f4 for float32"),
+    ] = DtypeOption.float32,
 ) -> None:
     count_col_name = input_tsv_path.stem
 
@@ -21,8 +32,7 @@ def convert_tsv(
         index_col="kmer",
     )
 
-    # Save space with using float32 instead of float64
-    df[count_col_name] = df[count_col_name].astype(np.float32)
+    df[count_col_name] = df[count_col_name].astype(dtype.value)
 
     if output_path.suffix == ".csv":
         df.to_csv(output_path)
