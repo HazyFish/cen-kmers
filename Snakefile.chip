@@ -1,11 +1,13 @@
 import pandas as pd
 
-df = pd.read_csv('GSE88907.SraRunTable.csv', usecols=['Run', 'chip_antibody'])
+df = pd.read_csv('GSE88907.SraRunTable.csv', usecols=['Run', 'Bases', 'chip_antibody'])
 runs = df[df["chip_antibody"].isin(["AtCENH3 (Steve Henikoff lab)", "none"])]['Run'].tolist()
+df['Coverage'] = df['Bases'] / 133_917_231  # Number of Bases in ColPEK Assembly
+coverages = df.set_index('Run')['Coverage'].to_dict()
 
 rule all:
     input:
-        expand("data/chip/filtered-counts/{run}.feather", run=runs)
+        expand("data/chip/normalized-filtered-counts/{run}.f32.feather", run=runs)
 
 rule prefetch:
     output:
@@ -40,13 +42,17 @@ rule dump_counts:
         "data/chip/jfs/{run}.jf"
     output:
         temp("data/chip/filtered-counts/{run}.tsv")
+    params:
+        min_count=lambda wildcards: int(0.5 * coverages[wildcards.run])
     shell:
-        "jellyfish dump -c -t {input} > {output}"
+        "jellyfish dump -c -t -L {params.min_count} {input} > {output}"
 
-rule convert_tsv_to_feather:
+rule normalize_counts:
     input:
         "data/chip/filtered-counts/{run}.tsv"
     output:
-        "data/chip/filtered-counts/{run}.feather"
+        "data/chip/normalized-filtered-counts/{run}.f32.feather"
+    params:
+        coverage=lambda wildcards: coverages[wildcards.run]
     shell:
-        "python scripts/convert_tsv.py {input} -o {output} --dtype int32"
+        "python scripts/normalize_kmer_count_by_coverage.py {input} -o {output} -c {params.coverage}"

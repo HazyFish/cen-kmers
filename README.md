@@ -28,4 +28,4 @@
 - `python scripts/join_kmer_counts_feather.py data/7-eco/compressed-filtered-counts/*.feather -o data/7-eco/joined-counts/ecotypes-joined-counts.feather -j 4`
 
 - `snakemake --snakefile Snakefile.chip --cores all --resources mem_mb=65536 --keep-going --dry-run`
-- `python scripts/join_kmer_counts_feather.py data/chip/filtered-counts/*.feather -o data/chip/chip-joined-counts.feather -j 3`
+- `python scripts/join_kmer_counts_feather.py data/chip/normalized-filtered-counts/*.feather -o data/chip/chip-joined-normalized-counts.feather -j 3`
