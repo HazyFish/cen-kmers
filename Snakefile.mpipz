@@ -1,0 +1,63 @@
+import pandas as pd
+
+df = pd.read_csv('PRJEB49306.SraRunTable.csv', usecols=['Run', 'Bases'])
+df['Coverage'] = df['Bases'] / 133_917_231  # Number of Bases in ColPEK Assembly
+runs = df['Run'].tolist()
+coverages = df.set_index('Run')['Coverage'].to_dict()
+
+rule all:
+    input:
+        expand("data/mpipz/normalized-filtered-counts/{run}.f32.feather", run=runs)
+
+rule prefetch:
+    priority: 0
+    output:
+        temp("data/mpipz/sra/{run}/{run}.sra")
+    shell:'''
+        prefetch {wildcards.run} -O data/mpipz/sra --max-size 16g
+    '''
+
+rule dump_fastq:
+    priority: 1
+    input:
+        "data/mpipz/sra/{run}/{run}.sra"
+    output:
+        temp("data/mpipz/fqs/{run}_1.fastq"), temp("data/mpipz/fqs/{run}_2.fastq")
+    threads: 4
+    shell:'''
+        fasterq-dump --threads {threads} --outdir data/mpipz/fqs {input}
+    '''
+
+rule jellyfish_count:
+    priority: 2
+    input:
+        "data/mpipz/fqs/{run}_1.fastq", "data/mpipz/fqs/{run}_2.fastq"
+    output:
+        temp("data/mpipz/jfs/{run}.jf")
+    resources:
+        mem_mb=32768
+    threads: 8
+    shell:
+        "jellyfish count -m 23 -s 8G -t {threads} -C -L 6 -o {output} {input}"
+
+rule dump_filtered_counts:
+    priority: 3
+    input:
+        "data/mpipz/jfs/{run}.jf"
+    output:
+        temp("data/mpipz/filtered-counts/{run}.tsv")
+    params:
+        min_count=lambda wildcards: int(coverages[wildcards.run])
+    shell:
+        "jellyfish dump -c -t -L {params.min_count} {input} > {output}"
+
+rule normalize_counts:
+    priority: 4
+    input:
+        "data/mpipz/filtered-counts/{run}.tsv"
+    output:
+        "data/mpipz/normalized-filtered-counts/{run}.f32.feather"
+    params:
+        coverage=lambda wildcards: coverages[wildcards.run]
+    shell:
+        "python scripts/normalize_kmer_count_by_coverage.py {input} -o {output} -c {params.coverage}"
