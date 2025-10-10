@@ -57,6 +57,8 @@ def join_kmer_counts(
                     "-b",
                     str(min_batch_size),
                     "--delete-inputs" if delete_inputs else "--keep-inputs",
+                    "--partition-threshold",
+                    str(partition_threshold),
                     *(str(path) for path in batch.items),
                 ],
             )
@@ -117,6 +119,7 @@ def join_kmer_counts(
                 ),
                 max_jobs=max_jobs,
                 min_batch_size=min_batch_size,
+                partition_threshold=partition_threshold,
                 delete_inputs=delete_inputs,
             )
 

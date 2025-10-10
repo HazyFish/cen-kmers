@@ -29,3 +29,6 @@
 
 - `snakemake --snakefile Snakefile.chip --cores all --resources mem_mb=65536 --keep-going --dry-run`
 - `python scripts/join_kmer_counts_feather.py data/chip/normalized-filtered-counts/*.feather -o data/chip/chip-joined-normalized-counts.feather -j 3`
+
+- `snakemake --snakefile Snakefile.mpipz --cores all --resources mem_mb=163840 --keep-going --dry-run`
+- `python scripts/join_kmer_counts_feather.py data/mpipz/normalized-filtered-counts/*.feather -o data/mpipz/joined-counts/mpipz-joined-counts.feather -j 48`

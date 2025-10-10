@@ -13,6 +13,8 @@ rule prefetch:
     priority: 0
     output:
         temp("data/mpipz/sra/{run}/{run}.sra")
+    resources:
+        disk_mb=16384
     shell:'''
         prefetch {wildcards.run} -O data/mpipz/sra --max-size 16g
     '''
@@ -23,6 +25,8 @@ rule dump_fastq:
         "data/mpipz/sra/{run}/{run}.sra"
     output:
         temp("data/mpipz/fqs/{run}_1.fastq"), temp("data/mpipz/fqs/{run}_2.fastq")
+    resources:
+        disk_mb=8192
     threads: 4
     shell:'''
         fasterq-dump --threads {threads} --outdir data/mpipz/fqs {input}
@@ -35,7 +39,8 @@ rule jellyfish_count:
     output:
         temp("data/mpipz/jfs/{run}.jf")
     resources:
-        mem_mb=32768
+        mem_mb=32768,
+        disk_mb=4096
     threads: 8
     shell:
         "jellyfish count -m 23 -s 8G -t {threads} -C -L 6 -o {output} {input}"
@@ -48,6 +53,8 @@ rule dump_filtered_counts:
         temp("data/mpipz/filtered-counts/{run}.tsv")
     params:
         min_count=lambda wildcards: int(coverages[wildcards.run])
+    resources:
+        disk_mb=2048
     shell:
         "jellyfish dump -c -t -L {params.min_count} {input} > {output}"
 
@@ -59,5 +66,7 @@ rule normalize_counts:
         "data/mpipz/normalized-filtered-counts/{run}.f32.feather"
     params:
         coverage=lambda wildcards: coverages[wildcards.run]
+    resources:
+        disk_mb=1024
     shell:
         "python scripts/normalize_kmer_count_by_coverage.py {input} -o {output} -c {params.coverage}"
