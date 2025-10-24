@@ -28,7 +28,7 @@ def split_feather(
     for i in range(n_parts):
         part = df[(df.index.map(hash) % n_parts) == i]
         out_path = output_path_fn(input_feather, i)
-        part.to_feather(out_path)
+        part.to_feather(out_path, compression="zstd", compression_level=4)
         yield out_path
 
 
