@@ -1,0 +1,74 @@
+import pandas as pd
+
+df = pd.read_csv("PRJNA269994.SraRunTable.csv")
+df = df[pd.to_numeric(df["Sample Name"].str.slice(4)).between(1160, 1255, inclusive='both')]
+df['Coverage'] = df['Bases'] / 133_917_231  # Number of Bases in ColPEK Assembly
+df = df[df["Coverage"].between(0.25, 0.75)]
+runs = df['Run'].tolist()
+coverages = df.set_index('Run')['Coverage'].to_dict()
+
+rule all:
+    input:
+        expand("data/tailswap/normalized-filtered-counts/{run}.f32.feather", run=runs)
+
+rule prefetch:
+    priority: 0
+    output:
+        temp("data/tailswap/sra/{run}/{run}.sra")
+    resources:
+        disk_mb=16384
+    shell:'''
+        prefetch {wildcards.run} -O data/tailswap/sra --max-size 16g
+    '''
+
+rule dump_fastq:
+    priority: 1
+    input:
+        "data/tailswap/sra/{run}/{run}.sra"
+    output:
+        temp("data/tailswap/fqs/{run}.fastq")
+    resources:
+        disk_mb=8192
+    threads: 4
+    shell:'''
+        fasterq-dump --threads {threads} --outdir data/tailswap/fqs {input}
+    '''
+
+rule jellyfish_count:
+    priority: 2
+    input:
+        "data/tailswap/fqs/{run}.fastq"
+    output:
+        temp("data/tailswap/jfs/{run}.jf")
+    resources:
+        mem_mb=32768,
+        disk_mb=4096
+    threads: 8
+    shell:
+        "jellyfish count -m 23 -s 8G -t {threads} -C -L 3 -o {output} {input}"
+
+rule dump_filtered_counts:
+    priority: 3
+    input:
+        "data/tailswap/jfs/{run}.jf"
+    output:
+        temp("data/tailswap/filtered-counts/{run}.tsv")
+    params:
+        min_count=lambda wildcards: int(coverages[wildcards.run] * 12)
+    resources:
+        disk_mb=2048
+    shell:
+        "jellyfish dump -c -t -L {params.min_count} {input} > {output}"
+
+rule normalize_counts:
+    priority: 4
+    input:
+        "data/tailswap/filtered-counts/{run}.tsv"
+    output:
+        "data/tailswap/normalized-filtered-counts/{run}.f32.feather"
+    params:
+        coverage=lambda wildcards: coverages[wildcards.run]
+    resources:
+        disk_mb=1024
+    shell:
+        "python scripts/normalize_kmer_count_by_coverage.py {input} -o {output} -c {params.coverage}"
